@@ -201,37 +201,44 @@ docker exec n8n-db-1 psql -U ${DB_POSTGRESDB_USER} -d ${DB_POSTGRESDB_DATABASE} 
 
 ## 3. Troubleshoot n8n service container
 
-# Check n8n logs for error messages
+Check n8n logs for error messages
+
 ```bash
 docker compose logs n8n
 ```
 
-# Check if n8n process is running inside container
+Check if n8n process is running inside container
+
 ```bash
 docker exec n8n-n8n-1 ps aux | grep n8n
 ```
 
-# Check network binding inside container
+Check network binding inside container
+
 ```bash
 docker exec n8n-n8n-1 netstat -tlpn
 ```
 
-# Check if n8n can connect to database
+Check if n8n can connect to database
+
 ```bash
 docker exec n8n-n8n-1 nc -zv db 5432
 ```
 
-# View detailed container health check history
+View detailed container health check history
+
 ```bash
 docker inspect -f '{{json .State.Health}}' n8n-n8n-1 | jq .
 ```
 
-# Check environment variables
+Check environment variables
+
 ```bash
 docker exec n8n-n8n-1 env | grep N8N_
 ```
 
-# Check listening ports
+Check listening ports
+
 ```bash
 docker exec n8n-n8n-1 ss -tlpn
 ```
