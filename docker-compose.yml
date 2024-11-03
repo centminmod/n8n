@@ -13,6 +13,7 @@ services:
       - "${N8N_PORT}:5678"
     networks:
       - n8n_network
+      - bridge_network
     dns: 
       - "${DOCKER_DNS_PRIMARY:-172.20.0.1}"  # Docker bridge DNS
       - "${DNS_RESOLVER_1:-1.1.1.1}"         # Primary external DNS
@@ -35,12 +36,15 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       
       # General Settings
+      - NODE_ENV=production
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
       - N8N_HOST=${N8N_HOST}
       - N8N_PORT=${N8N_PORT}
       - N8N_PROTOCOL=${N8N_PROTOCOL}
       - N8N_USER_FOLDER=${N8N_USER_FOLDER}
       - WEBHOOK_URL=${N8N_WEBHOOK_URL}
-      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - N8N_SKIP_WEBHOOK_SSL_VERIFICATION=${N8N_SKIP_WEBHOOK_SSL_VERIFICATION:-true}
+      - N8N_TRUSTED_PROXY_IPS=${N8N_TRUSTED_PROXY_IPS:-172.20.0.0/16}
 
       # Email Configuration
       - N8N_EMAIL_MODE=${N8N_EMAIL_MODE}
@@ -119,3 +123,6 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+  bridge_network:
+    external: true
+    name: bridge
