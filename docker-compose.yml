@@ -1,0 +1,121 @@
+version: "3.8"
+volumes:
+  n8n_data:
+    name: n8n_data
+  db_data:
+    name: n8n_postgres_data
+
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT}:5678"
+    networks:
+      - n8n_network
+    dns: 
+      - "${DOCKER_DNS_PRIMARY:-172.20.0.1}"  # Docker bridge DNS
+      - "${DNS_RESOLVER_1:-1.1.1.1}"         # Primary external DNS
+      - "${DNS_RESOLVER_2:-8.8.8.8}"         # Secondary external DNS
+    dns_opt:
+      - "ndots:1"
+      - "timeout:${DNS_TIMEOUT:-2}"
+      - "attempts:${DNS_ATTEMPTS:-3}"
+    environment:
+      # Database Configuration
+      - DB_TYPE=${DB_TYPE}
+      - DB_POSTGRESDB_HOST=${DB_POSTGRESDB_HOST}
+      - DB_POSTGRESDB_DATABASE=${DB_POSTGRESDB_DATABASE}
+      - DB_POSTGRESDB_USER=${DB_POSTGRESDB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_POSTGRESDB_PASSWORD}
+      - DB_POSTGRESDB_POOL_SIZE=${DB_POSTGRESDB_POOL_SIZE}
+      - DB_POSTGRESDB_CONNECTION_TIMEOUT=${DB_POSTGRESDB_CONNECTION_TIMEOUT}
+      
+      # Encryption
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      
+      # General Settings
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PORT=${N8N_PORT}
+      - N8N_PROTOCOL=${N8N_PROTOCOL}
+      - N8N_USER_FOLDER=${N8N_USER_FOLDER}
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+
+      # Email Configuration
+      - N8N_EMAIL_MODE=${N8N_EMAIL_MODE}
+      - N8N_SMTP_HOST=${N8N_SMTP_HOST}
+      - N8N_SMTP_PORT=${N8N_SMTP_PORT}
+      - N8N_SMTP_USER=${N8N_SMTP_USER}
+      - N8N_SMTP_PASS=${N8N_SMTP_PASS}
+      - N8N_SMTP_SENDER=${N8N_SMTP_SENDER}
+      
+      # Performance & Limits
+      - N8N_METRICS=${N8N_METRICS}
+      - N8N_DIAGNOSTICS_ENABLED=${N8N_DIAGNOSTICS_ENABLED}
+      - N8N_MAX_EXECUTION_TIMEOUT=${N8N_MAX_EXECUTION_TIMEOUT}
+      - EXECUTIONS_DATA_PRUNE=${EXECUTIONS_DATA_PRUNE}
+      - EXECUTIONS_DATA_MAX_AGE=${EXECUTIONS_DATA_MAX_AGE}
+      - N8N_HIRING_BANNER_ENABLED=${N8N_HIRING_BANNER_ENABLED}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    networks:
+      - n8n_network
+    ulimits:
+      nofile:
+        soft: ${POSTGRES_NOFILE_SOFT:-65536}
+        hard: ${POSTGRES_NOFILE_HARD:-65536}
+    dns: 
+      - "${DOCKER_DNS_PRIMARY:-172.20.0.1}"  # Docker bridge DNS
+      - "${DNS_RESOLVER_1:-1.1.1.1}"         # Primary external DNS
+      - "${DNS_RESOLVER_2:-8.8.8.8}"         # Secondary external DNS
+    dns_opt:
+      - "ndots:1"
+      - "timeout:${DNS_TIMEOUT:-2}"
+      - "attempts:${DNS_ATTEMPTS:-3}"
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT:-2G}
+          cpus: ${POSTGRES_CPU_LIMIT:-2}
+        reservations:
+          memory: ${POSTGRES_MEMORY_RESERVATION:-1G}
+          cpus: ${POSTGRES_CPU_RESERVATION:-1}
+    environment:
+      - POSTGRES_DB=${DB_POSTGRESDB_DATABASE}
+      - POSTGRES_USER=${DB_POSTGRESDB_USER}
+      - POSTGRES_PASSWORD=${DB_POSTGRESDB_PASSWORD}
+      - POSTGRES_MAX_CONNECTIONS=${POSTGRES_MAX_CONNECTIONS:-100}
+      - POSTGRES_SHARED_BUFFERS=${POSTGRES_SHARED_BUFFERS:-128MB}
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=${POSTGRES_EFFECTIVE_CACHE_SIZE:-384MB}
+      - POSTGRES_WORK_MEM=${POSTGRES_WORK_MEM:-16MB}
+      - POSTGRES_MAINTENANCE_WORK_MEM=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_POSTGRESDB_USER} -d ${DB_POSTGRESDB_DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  n8n_network:
+    name: n8n_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
