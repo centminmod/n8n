@@ -1,4 +1,3 @@
-version: "3.8"
 volumes:
   n8n_data:
     name: n8n_data
@@ -12,8 +11,7 @@ services:
     ports:
       - "${N8N_PORT}:5678"
     networks:
-      - n8n_network
-      - bridge_network
+      n8n_network: {}
     dns: 
       - "${DOCKER_DNS_PRIMARY:-172.20.0.1}"  # Docker bridge DNS
       - "${DNS_RESOLVER_1:-1.1.1.1}"         # Primary external DNS
@@ -67,16 +65,17 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:5678/healthz"]
+      test: ["CMD", "wget", "--spider", "--header", "Host: localhost", "http://0.0.0.0:5678/healthz"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
+      start_period: 30s
 
   db:
     image: postgres:17
     restart: unless-stopped
     networks:
-      - n8n_network
+      n8n_network: {}
     ulimits:
       nofile:
         soft: ${POSTGRES_NOFILE_SOFT:-65536}
@@ -123,6 +122,3 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
-  bridge_network:
-    external: true
-    name: bridge
