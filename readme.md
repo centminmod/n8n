@@ -160,7 +160,7 @@ docker network inspect n8n_network
 docker stats n8n-n8n-1 n8n-db-1 --no-stream
 ```
 ```bash
-stats n8n-n8n-1 n8n-db-1 --no-stream
+docker stats n8n-n8n-1 n8n-db-1 --no-stream
 CONTAINER ID   NAME        CPU %     MEM USAGE / LIMIT   MEM %     NET I/O           BLOCK I/O        PIDS
 f58284967ac5   n8n-n8n-1   0.38%     106MiB / 3.48GiB    2.98%     24.7kB / 24.3kB   4.1kB / 0B       13
 8ab178b53693   n8n-db-1    6.96%     53.62MiB / 2GiB     2.62%     759kB / 605kB     823kB / 61.2MB   7
